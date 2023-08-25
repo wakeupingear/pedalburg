@@ -27,10 +27,10 @@ jobs:
                   npx vsce show wakeupingear.petalburg | grep $VERSION
                   if [ $? -eq 0 ]; then
                     echo "Version $VERSION is already published. Skipping publish."
-                    echo "::set-output id=check::false"
+                    echo "::set-output name=check::false"
                   else
-                    echo "Publishing version $VERSION..."
-                    echo "::set-output id=check::true"
+                    echo "Version $VERSION is not published. Proceeding with publish."
+                    echo "::set-output name=check::true"
                   fi
 
             - name: Install Dependencies
