@@ -18,13 +18,8 @@ jobs:
               with:
                   node-version: 18
 
-            - name: Install Dependencies
-              run: npm i
-
-            - name: Package Extension
-              run: npx vsce package
-
             - name: Check if extension is already published
+              id: check
               run: |
                   VERSION=$(node -p "require('./package.json').version")
                   echo "Version: $VERSION"
@@ -32,11 +27,22 @@ jobs:
                   npx vsce show wakeupingear.petalburg | grep $VERSION
                   if [ $? -eq 0 ]; then
                     echo "Version $VERSION is already published. Skipping publish."
-                    exit 0
-                  fi
+                    echo "::set-output id=check::false"
+                  else
                     echo "Publishing version $VERSION..."
+                    echo "::set-output id=check::true"
+                  fi
+
+            - name: Install Dependencies
+              run: npm i
+              if: steps.check.outputs.check == 'true'
+
+            - name: Package Extension
+              run: npx vsce package
+              if: steps.check.outputs.check == 'true'
 
             - name: Publish Extension
               env:
                   VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
               run: npx vsce publish -p $VSCE_TOKEN
+              if: steps.check.outputs.check == 'true'
