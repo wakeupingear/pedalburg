@@ -43,6 +43,11 @@
             {
                 "command": "gameAssets.openFile",
                 "title": "Open File"
+            },
+            {
+                "command": "petalburg.sceneEditor.new",
+                "title": "Create new Junebug Scene",
+                "category": "Junebug Scene"
             }
         ],
         "menus": {
@@ -53,15 +58,28 @@
                     "group": "navigation"
                 }
             ]
-        }
+        },
+        "customEditors": [
+            {
+                "viewType": "petalburg.sceneEditor",
+                "displayName": "Junebug Scene",
+                "selector": [
+                    {
+                        "filenamePattern": "*.sc.json"
+                    }
+                ],
+                "priority": "default"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
+        "compile": "npm run build:scene && tsc -p ./",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
         "lint": "eslint src --ext ts",
-        "test": "node ./out/test/runTest.js"
+        "test": "node ./out/test/runTest.js",
+        "build:scene": "npm run build --prefix editors/scene/"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.1",

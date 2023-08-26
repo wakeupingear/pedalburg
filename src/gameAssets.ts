@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as chokidar from 'chokidar';
 
-import { ASSET_FOLDER } from './constants';
+import { ASSET_FOLDER, ASSET_PATH_ICONS } from './constants';
 import { capitalizeFirstLetter } from './utils';
 
 class FolderNode extends vscode.TreeItem {
@@ -15,9 +15,11 @@ class FolderNode extends vscode.TreeItem {
         super(capitalizeFirstLetter(name));
 
         if (collapsibleState === vscode.TreeItemCollapsibleState.Collapsed) {
-            this.iconPath = new vscode.ThemeIcon('folder');
+            this.iconPath =
+                ASSET_PATH_ICONS[name] || new vscode.ThemeIcon('folder');
         } else {
-            this.iconPath = new vscode.ThemeIcon('file');
+            this.iconPath =
+                ASSET_PATH_ICONS[name] || new vscode.ThemeIcon('file');
             this.command = {
                 command: 'gameAssets.openFile',
                 title: 'Open File',
@@ -35,8 +37,7 @@ export class GameAssetsProvider implements vscode.TreeDataProvider<FolderNode> {
         FolderNode | undefined | null | void
     > = this._onDidChangeTreeData.event;
 
-    refresh(): void {
-        console.log('Refreshing Game Assets');
+    refresh() {
         this._onDidChangeTreeData.fire();
     }
 
@@ -47,9 +48,8 @@ export class GameAssetsProvider implements vscode.TreeDataProvider<FolderNode> {
             return;
         }
 
-        // Start a new Chokidar watcher for the folder
         this.watcher = chokidar.watch(folderPath, {
-            ignored: /[\/\\]\./, // Ignore hidden files/directories
+            ignored: /[\/\\]\./,
             persistent: true,
             depth: Infinity,
         });
