@@ -191,6 +191,8 @@ class PawDrawDocument extends Disposable implements vscode.CustomDocument {
     }
 }
 
+const SCENE_APP_PATH = ['out', 'editors', 'scene'];
+
 /**
  * Provider for paw draw editors.
  *
@@ -403,32 +405,17 @@ export class PawDrawEditorProvider
         const scriptUri = webview.asWebviewUri(
             vscode.Uri.joinPath(
                 this._context.extensionUri,
-                'media',
-                'pawDraw.js'
+                ...SCENE_APP_PATH,
+                'assets',
+                'index.js'
             )
         );
-
-        const styleResetUri = webview.asWebviewUri(
+        const styleUri = webview.asWebviewUri(
             vscode.Uri.joinPath(
                 this._context.extensionUri,
-                'media',
-                'reset.css'
-            )
-        );
-
-        const styleVSCodeUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(
-                this._context.extensionUri,
-                'media',
-                'vscode.css'
-            )
-        );
-
-        const styleMainUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(
-                this._context.extensionUri,
-                'media',
-                'pawDraw.css'
+                ...SCENE_APP_PATH,
+                'assets',
+                'index.css'
             )
         );
 
@@ -439,34 +426,26 @@ export class PawDrawEditorProvider
 			<!DOCTYPE html>
 			<html lang="en">
 			<head>
-				<meta charset="UTF-8">
-
-				<!--
-				Use a content security policy to only allow loading images from https or from our extension directory,
-				and only allow scripts that have a specific nonce.
-				-->
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} blob:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
-
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-				<link href="${styleResetUri}" rel="stylesheet" />
-				<link href="${styleVSCodeUri}" rel="stylesheet" />
-				<link href="${styleMainUri}" rel="stylesheet" />
-
-				<title>Paw Draw</title>
+				<meta charset="utf-8">
+				<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+				<meta name="theme-color" content="#000000">
+				<title>Scene Editor</title>
+                <script type="module" crossorigin nonce="${nonce}" src="${scriptUri}"></script>
+                <link rel="stylesheet" href="${styleUri}">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src vscode-resource: https:; script-src 'nonce-${nonce}';style-src vscode-resource: 'unsafe-inline' http: https: data:;">
+				<base href="${webview
+                    .asWebviewUri(
+                        vscode.Uri.joinPath(
+                            this._context.extensionUri,
+                            ...SCENE_APP_PATH
+                        )
+                    )
+                    .with({
+                        scheme: 'vscode-resource',
+                    })}/">
 			</head>
 			<body>
-				<div class="drawing-canvas"></div>
-
-				<div class="drawing-controls">
-					<button data-color="black" class="black active" title="Black"></button>
-					<button data-color="white" class="white" title="White"></button>
-					<button data-color="red" class="red" title="Red"></button>
-					<button data-color="green" class="green" title="Green"></button>
-					<button data-color="blue" class="blue" title="Blue"></button>
-				</div>
-
-				<script nonce="${nonce}" src="${scriptUri}"></script>
+                <div id="root"></div>
 			</body>
 			</html>`;
     }
