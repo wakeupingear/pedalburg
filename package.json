@@ -79,7 +79,9 @@
         "pretest": "npm run compile && npm run lint",
         "lint": "eslint src --ext ts",
         "test": "node ./out/test/runTest.js",
-        "build:scene": "npm run build --prefix editors/scene/"
+        "build:scene": "npm run build --prefix editors/scene/",
+        "dev:scene": "npm run dev --prefix editors/scene/",
+        "dev": "npm run dev:scene"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.1",

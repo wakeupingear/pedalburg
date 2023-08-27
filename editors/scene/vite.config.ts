@@ -9,10 +9,14 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             output: {
-                entryFileNames: `assets/[name].js`,
-                chunkFileNames: `assets/[name].js`,
-                assetFileNames: `assets/[name].[ext]`,
+                entryFileNames: `assets/vscode.js`,
+                assetFileNames: `assets/vscode.[ext]`,
             },
         },
+    },
+    base: 'http://localhost:5555/',
+    server: {
+        port: 5555,
+        cors: true,
     },
 });

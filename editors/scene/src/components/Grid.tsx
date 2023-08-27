@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, MutableRefObject } from 'react';
 import { Vector } from '../types/math';
 import { Scene } from '../types/junebug';
 
@@ -16,9 +16,30 @@ interface Mouse {
     drag: boolean;
 }
 
+interface DrawArgs {
+    fill: string;
+    strokeStyle: string;
+    lineWidth: number;
+    alpha: number;
+}
+
+interface GridHelpers {
+    ctx: CanvasRenderingContext2D;
+    mouse: MutableRefObject<Mouse>;
+    scene: Scene;
+    coordToCanvas: (x: number, y: number) => Vector;
+    drawRect: (
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        args?: Partial<DrawArgs>
+    ) => void;
+}
+
 interface GridProps {
     scene: Scene;
-    draw?: (ctx: CanvasRenderingContext2D) => void;
+    draw?: (helpers: GridHelpers) => void;
     scale?: number;
     scaleRate?: number;
     tileSize?: number;
@@ -29,7 +50,7 @@ export default function Grid({
     draw: externalDraw,
     scale: _scale = 1,
     scaleRate: __scaleRate = 1.02,
-    tileSize: __tileSize = 36,
+    tileSize: __tileSize = 16,
 }: GridProps) {
     const _tileSize = useRef(__tileSize);
     const _scaleRate = useRef(__scaleRate);
@@ -62,38 +83,60 @@ export default function Grid({
             this.x = x - (x - this.x) * sc;
             this.y = y - (y - this.y) * sc;
         },
-        toWorld(x: number, y: number, point: Partial<Vector> = {}): Vector {
-            // converts from screen coords to world coords
-            const inv = 1 / this.scale;
-            point.x = (x - this.x) * inv;
-            point.y = (y - this.y) * inv;
-            return point as Vector;
-        },
     });
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // eslint-disable-next-line
-    function mouseEvents(e: any) {
-        if (!canvasRef.current) return;
+    const screenToWorld = (x: number, y: number) => {
+        const inv = 1 / _panZoom.current.scale;
+        return {
+            x: (x - _panZoom.current.x) * inv,
+            y: (y - _panZoom.current.y) * inv,
+        };
+    };
 
-        const mouse = _mouse.current;
-        const bounds = canvasRef.current.getBoundingClientRect();
-        mouse.x = e.pageX - bounds.left - scrollX;
-        mouse.y = e.pageY - bounds.top - scrollY;
-        if (e.type === 'mousedown' || e.type === 'mouseup') {
-            mouse.button =
-                e.button === 0 ? 'left' : e.button === 1 ? 'middle' : 'right';
-            if (e.type === 'mouseup') {
-                mouse.button = null;
+    const coordToCanvas = (x: number, y: number) => {
+        return {
+            x: x * _panZoom.current.scale + _panZoom.current.x,
+            y: y * _panZoom.current.scale + _panZoom.current.y,
+        };
+    };
+
+    const helpers = useRef<GridHelpers>({
+        ctx: null as unknown as CanvasRenderingContext2D,
+        mouse: _mouse,
+        drawRect: (x, y, w, h, args) => {
+            const ctx = helpers.current.ctx;
+
+            const width = args?.lineWidth ?? 1;
+            x = Math.round(x + width / 2);
+            y = Math.round(y + width / 2);
+            w = Math.round(w - width);
+            h = Math.round(h - width);
+            ctx.lineWidth = width * _panZoom.current.scale;
+            ctx.globalAlpha = args?.alpha ?? 1;
+
+            ctx.beginPath();
+            const { x: x1, y: y1 } = coordToCanvas(x, y);
+            const { x: x2, y: y2 } = coordToCanvas(x + w, y + h);
+
+            if (args?.fill) {
+                ctx.fillStyle = args?.fill;
+                ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+            } else {
+                ctx.rect(x1, y1, x2 - x1, y2 - y1);
             }
-        }
 
-        if (e.type === 'wheel') {
-            mouse.wheel += -e.deltaY;
-            e.preventDefault();
-        }
-    }
+            if (args?.strokeStyle) {
+                ctx.strokeStyle = args.strokeStyle;
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            }
+
+            ctx.stroke();
+        },
+        coordToCanvas,
+        scene,
+    });
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -102,13 +145,39 @@ export default function Grid({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+        // eslint-disable-next-line
+        function mouseEvents(e: any) {
+            if (!canvasRef.current) return;
+
+            const mouse = _mouse.current;
+            const bounds = canvasRef.current.getBoundingClientRect();
+            mouse.x = e.pageX - bounds.left - scrollX;
+            mouse.y = e.pageY - bounds.top - scrollY;
+            if (e.type === 'mousedown' || e.type === 'mouseup') {
+                mouse.button =
+                    e.button === 0
+                        ? 'left'
+                        : e.button === 1
+                        ? 'middle'
+                        : 'right';
+                if (e.type === 'mouseup') {
+                    mouse.button = null;
+                }
+            }
+
+            if (e.type === 'wheel') {
+                mouse.wheel += -e.deltaY;
+                e.preventDefault();
+            }
+        }
+
         // Add event listeners for mouse events
         MOUSE_MOTION_EVENTS.forEach((name) =>
             document.addEventListener(name, mouseEvents)
         );
         document.addEventListener('wheel', mouseEvents, { passive: false });
 
-        // Main draw function
+        // Main grid draw function
         let animationFrameId: number;
         const draw = () => {
             const w = window.innerWidth,
@@ -117,16 +186,17 @@ export default function Grid({
             canvas.height = h;
 
             const gridScale = _tileSize.current,
-                panZoom = _panZoom.current,
-                topLeft = _topLeft.current;
+                panZoom = _panZoom.current;
             let x = 0,
                 y = 0;
 
             let wScaled = w / panZoom.scale + gridScale * 2,
                 hScaled = h / panZoom.scale + gridScale * 2;
-            _panZoom.current.toWorld(0, 0, topLeft);
-            x = Math.floor(topLeft.x / gridScale) * gridScale;
-            y = Math.floor(topLeft.y / gridScale) * gridScale;
+            const { x: tlX, y: tlY } = screenToWorld(0, 0);
+            _topLeft.current.x = tlX;
+            _topLeft.current.y = tlY;
+            x = Math.floor(tlX / gridScale) * gridScale;
+            y = Math.floor(tlY / gridScale) * gridScale;
 
             if (wScaled / gridScale > scene.size[0]) {
                 wScaled = gridScale * scene.size[0];
@@ -149,7 +219,8 @@ export default function Grid({
             ctx.setTransform(1, 0, 0, 1, 0, 0); // reset the transform so the lineWidth is 1
             ctx.stroke();
 
-            externalDraw?.(ctx);
+            helpers.current.ctx = ctx;
+            externalDraw?.(helpers.current);
         };
 
         // Initialize animation loop

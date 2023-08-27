@@ -192,6 +192,7 @@ class PawDrawDocument extends Disposable implements vscode.CustomDocument {
 }
 
 const SCENE_APP_PATH = ['out', 'editors', 'scene'];
+const PORT = 5555;
 
 /**
  * Provider for paw draw editors.
@@ -330,7 +331,8 @@ export class PawDrawEditorProvider
             enableScripts: true,
         };
         webviewPanel.webview.html = this.getHtmlForWebview(
-            webviewPanel.webview
+            webviewPanel.webview,
+            this._context
         );
 
         webviewPanel.webview.onDidReceiveMessage((e) =>
@@ -400,24 +402,48 @@ export class PawDrawEditorProvider
     /**
      * Get the static HTML used for in our editor's webviews.
      */
-    private getHtmlForWebview(webview: vscode.Webview): string {
+    private getHtmlForWebview(
+        webview: vscode.Webview,
+        context: vscode.ExtensionContext
+    ): string {
+        const IS_PROD =
+            context.extensionMode === vscode.ExtensionMode.Production;
+
         // Local path to script and css for the webview
-        const scriptUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(
-                this._context.extensionUri,
-                ...SCENE_APP_PATH,
-                'assets',
-                'index.js'
-            )
-        );
-        const styleUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(
-                this._context.extensionUri,
-                ...SCENE_APP_PATH,
-                'assets',
-                'index.css'
-            )
-        );
+        let scriptUri = null,
+            styleUri = null,
+            baseUri = null;
+        if (IS_PROD) {
+            scriptUri = webview.asWebviewUri(
+                vscode.Uri.joinPath(
+                    this._context.extensionUri,
+                    ...SCENE_APP_PATH,
+                    'assets',
+                    'vscode.js'
+                )
+            );
+            styleUri = webview.asWebviewUri(
+                vscode.Uri.joinPath(
+                    this._context.extensionUri,
+                    ...SCENE_APP_PATH,
+                    'assets',
+                    'vscode.css'
+                )
+            );
+            baseUri = webview
+                .asWebviewUri(
+                    vscode.Uri.joinPath(
+                        this._context.extensionUri,
+                        ...SCENE_APP_PATH
+                    )
+                )
+                .with({
+                    scheme: 'vscode-resource',
+                });
+        } else {
+            scriptUri = `http://localhost:${PORT}/@vite/client`;
+            baseUri = `http://localhost:${PORT}`;
+        }
 
         // Use a nonce to whitelist which scripts can be run
         const nonce = getNonce();
@@ -430,22 +456,22 @@ export class PawDrawEditorProvider
 				<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
 				<meta name="theme-color" content="#000000">
 				<title>Scene Editor</title>
+				<base href="${baseUri}/">
+                ${
+                    !IS_PROD &&
+                    `<script type="module" nonce="${nonce}">import { injectIntoGlobalHook } from "/@react-refresh";
+                    injectIntoGlobalHook(window);
+                    window.$RefreshReg$ = () => {};
+                    window.$RefreshSig$ = () => (type) => type;
+                </script>`
+                }
                 <script type="module" crossorigin nonce="${nonce}" src="${scriptUri}"></script>
-                <link rel="stylesheet" href="${styleUri}">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src vscode-resource: https:; script-src 'nonce-${nonce}';style-src vscode-resource: 'unsafe-inline' http: https: data:;">
-				<base href="${webview
-                    .asWebviewUri(
-                        vscode.Uri.joinPath(
-                            this._context.extensionUri,
-                            ...SCENE_APP_PATH
-                        )
-                    )
-                    .with({
-                        scheme: 'vscode-resource',
-                    })}/">
+                ${styleUri ? '<link rel="stylesheet" href="${styleUri}">' : ''}
+				<meta http-equiv="Content-Security-Policy" content="default-src 'self' ws://localhost:${PORT} http://localhost:${PORT}; img-src vscode-resource: https:; script-src 'nonce-${nonce}';style-src vscode-resource: 'unsafe-inline' http: https: data:; connect-src ws://localhost:${PORT} http://localhost:${PORT};">
 			</head>
 			<body>
                 <div id="root"></div>
+                <script type="module" src="/src/main.tsx" nonce="${nonce}"></script>
 			</body>
 			</html>`;
     }
