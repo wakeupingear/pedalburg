@@ -1,7 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html {
     overflow: hidden;
 }
 
 body {
     padding: 0 !important;
+    background-color: var(--vscode-editor-background);
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+#root {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    border: 2px solid var(--vscode-editorGroupHeader-tabsBackground);
+    overflow: hidden;
+}
+
+input {
+    @apply px-2 w-full border-[1px] rounded-sm;
+    border-color: var(--vscode-input-border);
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type='number'] {
+    -moz-appearance: textfield;
 }

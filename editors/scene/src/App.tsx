@@ -1,12 +1,14 @@
 import './App.css';
-import VSCodeWrapper from './components/VSCodeWrapper';
-import Scene from './components/Scene';
+import EditorWrapper from './components/EditorWrapper';
+import SceneGrid from './components/SceneGrid';
+import SidePanel from './components/SidePanel';
 
 function App() {
     return (
-        <VSCodeWrapper>
-            <Scene />
-        </VSCodeWrapper>
+        <EditorWrapper>
+            <SceneGrid />
+            <SidePanel />
+        </EditorWrapper>
     );
 }
 

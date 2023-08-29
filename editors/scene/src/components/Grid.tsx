@@ -1,6 +1,9 @@
 import { useRef, useEffect, MutableRefObject } from 'react';
 import { Vector } from '../types/math';
 import { Scene } from '../types/junebug';
+import { COL_EDITOR_TABS_BACKGROUND } from '../utils/vscode';
+
+const VIEW_BORDER = 2;
 
 const MOUSE_MOTION_EVENTS = ['mousedown', 'mouseup', 'mousemove'];
 const MIN_SCALE = 0.25,
@@ -26,7 +29,7 @@ interface DrawArgs {
 interface GridHelpers {
     ctx: CanvasRenderingContext2D;
     mouse: MutableRefObject<Mouse>;
-    scene: Scene;
+    scene: MutableRefObject<Scene | null>;
     coordToCanvas: (x: number, y: number) => Vector;
     drawRect: (
         x: number,
@@ -38,7 +41,7 @@ interface GridHelpers {
 }
 
 interface GridProps {
-    scene: Scene;
+    scene: MutableRefObject<Scene | null>;
     draw?: (helpers: GridHelpers) => void;
     scale?: number;
     scaleRate?: number;
@@ -180,8 +183,8 @@ export default function Grid({
         // Main grid draw function
         let animationFrameId: number;
         const draw = () => {
-            const w = window.innerWidth,
-                h = window.innerHeight;
+            const w = window.innerWidth - VIEW_BORDER * 2,
+                h = window.innerHeight - VIEW_BORDER * 2;
             canvas.width = w;
             canvas.height = h;
 
@@ -198,17 +201,21 @@ export default function Grid({
             x = Math.floor(tlX / gridScale) * gridScale;
             y = Math.floor(tlY / gridScale) * gridScale;
 
-            if (wScaled / gridScale > scene.size[0]) {
-                wScaled = gridScale * scene.size[0];
+            if (scene.current) {
+                if (wScaled / gridScale > scene.current.size[0]) {
+                    wScaled = gridScale * scene.current.size[0];
+                }
+                if (hScaled / gridScale > scene.current.size[1]) {
+                    hScaled = gridScale * scene.current.size[1];
+                }
             }
-            if (hScaled / gridScale > scene.size[1]) {
-                hScaled = gridScale * scene.size[1];
-            }
-            const size = Math.max(wScaled, hScaled);
 
+            const size = Math.max(wScaled, hScaled);
             _panZoom.current.apply(ctx);
+
+            // Draw grid
             ctx.lineWidth = 1;
-            ctx.strokeStyle = '#000';
+            ctx.strokeStyle = COL_EDITOR_TABS_BACKGROUND;
             ctx.beginPath();
             for (let i = 0; i < size; i += gridScale) {
                 ctx.moveTo(x + i, y);
@@ -217,6 +224,17 @@ export default function Grid({
                 ctx.lineTo(x + size, y + i);
             }
             ctx.setTransform(1, 0, 0, 1, 0, 0); // reset the transform so the lineWidth is 1
+            ctx.stroke();
+
+            // Draw axis
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#000';
+            const { x: x1, y: y1 } = coordToCanvas(0, 0);
+            ctx.beginPath();
+            ctx.moveTo(x1, 0);
+            ctx.lineTo(x1, h);
+            ctx.moveTo(0, y1);
+            ctx.lineTo(w, y1);
             ctx.stroke();
 
             helpers.current.ctx = ctx;

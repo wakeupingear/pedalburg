@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 
-import { PawDrawEditorProvider } from './scene';
+import { SceneEditorProvider } from './scene';
 
 const registerFileEditors = (context: vscode.ExtensionContext) => {
-    context.subscriptions.push(PawDrawEditorProvider.register(context));
+    context.subscriptions.push(SceneEditorProvider.register(context));
 };
 
 export default registerFileEditors;
