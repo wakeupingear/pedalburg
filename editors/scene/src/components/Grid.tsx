@@ -27,10 +27,12 @@ interface DrawArgs {
 }
 
 interface GridHelpers {
+    canvasSize?: Vector;
     ctx: CanvasRenderingContext2D;
     mouse: MutableRefObject<Mouse>;
     scene: MutableRefObject<Scene | null>;
     coordToCanvas: (x: number, y: number) => Vector;
+    canvasToCoord: (x: number, y: number) => Vector;
     drawRect: (
         x: number,
         y: number,
@@ -90,7 +92,7 @@ export default function Grid({
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    const screenToWorld = (x: number, y: number) => {
+    const canvasToCoord = (x: number, y: number) => {
         const inv = 1 / _panZoom.current.scale;
         return {
             x: (x - _panZoom.current.x) * inv,
@@ -138,6 +140,7 @@ export default function Grid({
             ctx.stroke();
         },
         coordToCanvas,
+        canvasToCoord,
         scene,
     });
 
@@ -187,6 +190,7 @@ export default function Grid({
                 h = window.innerHeight - VIEW_BORDER * 2;
             canvas.width = w;
             canvas.height = h;
+            helpers.current.canvasSize = { x: w, y: h };
 
             const gridScale = _tileSize.current,
                 panZoom = _panZoom.current;
@@ -195,7 +199,7 @@ export default function Grid({
 
             let wScaled = w / panZoom.scale + gridScale * 2,
                 hScaled = h / panZoom.scale + gridScale * 2;
-            const { x: tlX, y: tlY } = screenToWorld(0, 0);
+            const { x: tlX, y: tlY } = canvasToCoord(0, 0);
             _topLeft.current.x = tlX;
             _topLeft.current.y = tlY;
             x = Math.floor(tlX / gridScale) * gridScale;

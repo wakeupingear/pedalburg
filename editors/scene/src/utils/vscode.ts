@@ -18,3 +18,6 @@ export const COL_EDITOR_FOREGROUND = styles.getPropertyValue(
 export const COL_EDITOR_TABS_BACKGROUND = styles.getPropertyValue(
     '--vscode-editorGroupHeader-tabsBackground'
 );
+export const COL_BREADCRUMB_FOREGROUND = styles.getPropertyValue(
+    '--vscode-breadcrumb-foreground'
+);

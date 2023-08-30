@@ -2,6 +2,7 @@ import Grid from './Grid';
 import { useEditor } from './EditorWrapper';
 import { useEffect, useRef } from 'react';
 import { Scene } from '../types/junebug';
+import { COL_BREADCRUMB_FOREGROUND } from '../utils/vscode';
 
 export default function SceneGrid() {
     const { scene: _scene, validFile } = useEditor();
@@ -23,13 +24,19 @@ export default function SceneGrid() {
     return (
         <Grid
             scene={scene}
-            draw={({ drawRect, scene }) => {
+            draw={({
+                drawRect,
+                scene,
+                mouse,
+                ctx,
+                canvasSize,
+                canvasToCoord,
+            }) => {
                 if (scene.current) {
                     const { size, actors = [] } = scene.current;
 
                     drawRect(0, 0, size[0], size[1], {
-                        fill: 'blue',
-                        lineWidth: 20,
+                        fill: COL_BREADCRUMB_FOREGROUND,
                     });
 
                     actors.forEach((actor) => {
@@ -40,6 +47,20 @@ export default function SceneGrid() {
                             });
                         }
                     });
+
+                    if (canvasSize) {
+                        ctx.fillStyle = 'white';
+                        ctx.font = '12px monospace';
+                        const coord = canvasToCoord(
+                            mouse.current.x,
+                            mouse.current.y
+                        );
+                        ctx.fillText(
+                            `${Math.round(coord.x)}, ${Math.round(coord.y)}`,
+                            8,
+                            canvasSize.y - 8
+                        );
+                    }
                 }
             }}
         />

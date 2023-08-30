@@ -13,6 +13,7 @@ import { SceneEdit } from '../types/vscode';
 
 type EditorContextProps = {
     editable: boolean;
+    fileName: string | null;
     scene: Scene | null;
     validFile: boolean;
     makeEdit: (edit: SceneEdit) => void;
@@ -27,6 +28,7 @@ interface VSCodeProps {
 
 export default function EditorWrapper({ children }: VSCodeProps) {
     const [editable, setEditable] = useState(false);
+    const [fileName, setFileName] = useState<string | null>(null);
     const [scene, setScene] = useState<Scene | null>(null);
     const [validFile, setValidFile] = useState(true);
 
@@ -49,6 +51,21 @@ export default function EditorWrapper({ children }: VSCodeProps) {
         }
     };
 
+    const resetUntitled = (edits?: SceneEdit[]) => {
+        reset(
+            new TextEncoder().encode(
+                JSON.stringify(
+                    {
+                        size: [384, 216],
+                    },
+                    null,
+                    2
+                )
+            ),
+            edits
+        );
+    };
+
     useEffect(() => {
         // Handle messages from the extension
         window.addEventListener('message', async (e) => {
@@ -56,15 +73,17 @@ export default function EditorWrapper({ children }: VSCodeProps) {
             switch (type) {
                 case 'init': {
                     setEditable(body.editable);
-                    if (body.untitled) {
-                        return;
-                    }
+                    setFileName(body.fileName);
 
-                    reset(body.value);
+                    if (body.untitled) resetUntitled(body.edits);
+                    else reset(body.value);
+
                     break;
                 }
                 case 'update': {
+                    setFileName(body.fileName);
                     reset(body.content, body.edits);
+
                     break;
                 }
                 case 'getFileData': {
@@ -101,7 +120,7 @@ export default function EditorWrapper({ children }: VSCodeProps) {
 
     return (
         <EditorContext.Provider
-            value={{ editable, scene, validFile, makeEdit }}
+            value={{ editable, fileName, scene, validFile, makeEdit }}
         >
             {children}
         </EditorContext.Provider>

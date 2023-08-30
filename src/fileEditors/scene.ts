@@ -233,26 +233,74 @@ export class SceneEditorProvider
     public static register(
         context: vscode.ExtensionContext
     ): vscode.Disposable {
-        vscode.commands.registerCommand('petalburg.sceneEditor.new', () => {
-            const workspaceFolders = vscode.workspace.workspaceFolders;
-            if (!workspaceFolders) {
-                vscode.window.showErrorMessage(
-                    'Creating new Paw Draw files currently requires opening a workspace'
+        vscode.commands.registerCommand(
+            'petalburg.sceneEditor.new',
+            async () => {
+                const workspaceFolders = vscode.workspace.workspaceFolders;
+                if (!workspaceFolders) {
+                    vscode.window.showErrorMessage(
+                        'Creating new Junebug Scene currently requires opening a workspace'
+                    );
+                    return;
+                }
+
+                let name = await vscode.window.showInputBox({
+                    prompt: 'Enter a name for the new Junebug Scene',
+                });
+                if (name === undefined) {
+                    return;
+                }
+
+                name = name.trim();
+                name = name || `NewScene-${SceneEditorProvider.newSceneFileId}`;
+                if (!name.endsWith('.sc.json')) {
+                    name += '.sc.json';
+                }
+
+                SceneEditorProvider.newSceneFileId++;
+
+                const uris = await vscode.window.showOpenDialog({
+                    canSelectFiles: false,
+                    canSelectFolders: true,
+                    canSelectMany: false,
+                    defaultUri: vscode.Uri.joinPath(
+                        workspaceFolders[0].uri,
+                        'assets',
+                        'scenes'
+                    ),
+                });
+                if (uris === undefined) {
+                    return;
+                }
+
+                if (uris[0]) {
+                    vscode.workspace.fs.writeFile(
+                        vscode.Uri.joinPath(uris[0], name),
+                        new TextEncoder().encode(
+                            JSON.stringify(
+                                {
+                                    size: [384, 216],
+                                },
+                                null,
+                                2
+                            )
+                        )
+                    );
+                }
+
+                const uri = uris[0]
+                    ? vscode.Uri.joinPath(uris[0], name)
+                    : vscode.Uri.joinPath(workspaceFolders[0].uri, name).with({
+                          scheme: 'untitled',
+                      });
+
+                vscode.commands.executeCommand(
+                    'vscode.openWith',
+                    uri,
+                    SceneEditorProvider.viewType
                 );
-                return;
             }
-
-            const uri = vscode.Uri.joinPath(
-                workspaceFolders[0].uri,
-                `new-${SceneEditorProvider.newSceneFileId++}.sc.json`
-            ).with({ scheme: 'untitled' });
-
-            vscode.commands.executeCommand(
-                'vscode.openWith',
-                uri,
-                SceneEditorProvider.viewType
-            );
-        });
+        );
 
         return vscode.window.registerCustomEditorProvider(
             SceneEditorProvider.viewType,
@@ -326,6 +374,7 @@ export class SceneEditorProvider
                     this.postMessage(webviewPanel, 'update', {
                         edits: e.edits,
                         content: e.content,
+                        fileName: document.uri.fsPath,
                     });
                 }
             })
@@ -364,6 +413,7 @@ export class SceneEditorProvider
                     this.postMessage(webviewPanel, 'init', {
                         untitled: true,
                         editable: true,
+                        fileName: document.uri.fsPath,
                     });
                 } else {
                     const editable = vscode.workspace.fs.isWritableFileSystem(
@@ -373,6 +423,7 @@ export class SceneEditorProvider
                     this.postMessage(webviewPanel, 'init', {
                         value: document.documentData,
                         editable,
+                        fileName: document.uri.fsPath,
                     });
                 }
             }

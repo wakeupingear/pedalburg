@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useEditor } from './EditorWrapper';
 
 export default function SidePanel() {
-    const { validFile, scene, makeEdit } = useEditor();
+    const { validFile, scene, makeEdit, fileName } = useEditor();
 
     const [size, setSize] = useState(scene?.size || null);
     const [changed, setChanged] = useState(false);
@@ -14,6 +14,10 @@ export default function SidePanel() {
     }, [scene]);
 
     if (!validFile || !scene) return null;
+
+    const title = fileName
+        ? fileName.split('/').pop()?.replace('.sc.json', '')
+        : 'Untitled';
 
     const saveEdit = () => {
         if (!changed || !size || size[0] <= 0 || size[1] <= 0) return;
@@ -29,6 +33,7 @@ export default function SidePanel() {
 
     return (
         <div className="p-2 absolute right-0 top-0 flex flex-col w-36 h-full bg-[var(--vscode-editor-background)] border-l-2 border-l-[var(--vscode-editorGroupHeader-tabsBackground)]">
+            <h1 className="text-xl capitalize">{title}</h1>
             {size && (
                 <>
                     <h2 className="mt-auto">Scene Size</h2>
