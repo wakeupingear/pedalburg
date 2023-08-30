@@ -34,15 +34,15 @@ jobs:
                   fi
 
             - name: Install Dependencies
-              run: npm i
+              run: npm i && npm i -g @vscode/vsce
               if: steps.check.outputs.check == 'true'
 
             - name: Package Extension
-              run: npx vsce package
+              run: vsce package
               if: steps.check.outputs.check == 'true'
 
             - name: Publish Extension
               env:
                   VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
-              run: npx vsce publish -p $VSCE_TOKEN
+              run: vsce publish -p $VSCE_TOKEN
               if: steps.check.outputs.check == 'true'
