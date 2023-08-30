@@ -3,7 +3,7 @@ import { Disposable, disposeAll } from './dispose';
 import { getNonce } from '../utils';
 
 /**
- * Define the type of edits used in paw draw files.
+ * Define the type of edits used in scene files.
  */
 interface InsertEdit {
     readonly type: 'insert';
@@ -31,7 +31,7 @@ interface SceneDocumentDelegate {
 }
 
 /**
- * Define the document (the data model) used for paw draw files.
+ * Define the document (the data model) used for scene files.
  */
 class SceneDocument extends Disposable implements vscode.CustomDocument {
     static async create(
@@ -211,19 +211,9 @@ const SCENE_APP_PATH = ['out', 'editors', 'scene'];
 const PORT = 5555;
 
 /**
- * Provider for paw draw editors.
+ * Provider for scene editors.
  *
- * Paw draw editors are used for `.pawDraw` files, which are just `.png` files with a different file extension.
- *
- * This provider demonstrates:
- *
- * - How to implement a custom editor for binary files.
- * - Setting up the initial webview for a custom editor.
- * - Loading scripts and styles in a custom editor.
- * - Communication between VS Code and the custom editor.
- * - Using CustomDocuments to store information that is shared between multiple custom editors.
- * - Implementing save, undo, redo, and revert.
- * - Backing up a custom editor.
+ * Scene editors are used for `.sc.json` files, which are just `.json` files with a different file extension.
  */
 export class SceneEditorProvider
     implements vscode.CustomEditorProvider<SceneDocument>
