@@ -18,13 +18,16 @@ jobs:
               with:
                   node-version: 18
 
+            - name: Install VSCE
+              run: npm i -g @vscode/vsce
+
             - name: Check if extension is already published
               id: check
               run: |
                   VERSION=$(node -p "require('./package.json').version")
                   echo "Version: $VERSION"
                   echo "Checking if version is already published..."
-                  npx vsce show wakeupingear.petalburg | grep $VERSION
+                  vsce show wakeupingear.petalburg | grep $VERSION
                   if [ $? -eq 0 ]; then
                     echo "Version $VERSION is already published. Skipping publish."
                     echo "::set-output name=check::false"
@@ -34,7 +37,7 @@ jobs:
                   fi
 
             - name: Install Dependencies
-              run: npm i && npm i -g @vscode/vsce
+              run: npm i
               if: steps.check.outputs.check == 'true'
 
             - name: Package Extension
