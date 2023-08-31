@@ -81,7 +81,8 @@
         "test": "node ./out/test/runTest.js",
         "build:scene": "npm run build --prefix editors/scene/",
         "dev:scene": "npm run dev --prefix editors/scene/",
-        "dev": "npm run dev:scene"
+        "dev": "npm run dev:scene",
+        "preinstall": "npm i --prefix editors/scene/"
     },
     "devDependencies": {
         "@types/mocha": "^10.0.1",
@@ -93,7 +94,7 @@
         "eslint": "^8.47.0",
         "glob": "^10.3.3",
         "mocha": "^10.2.0",
-        "typescript": "^5.1.6"
+        "typescript": "^5.2.2"
     },
     "dependencies": {
         "chokidar": "^3.5.3"
