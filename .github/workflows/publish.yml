@@ -45,6 +45,6 @@ jobs:
 
             - name: Publish Extension
               env:
-                  VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
+                  VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
               run: vsce publish -p $VSCE_TOKEN
               if: steps.check.outputs.check == 'true'
