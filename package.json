@@ -2,7 +2,7 @@
     "name": "petalburg",
     "displayName": "Petalburg",
     "description": "Official development environment of the Junebug game engine",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "engines": {
         "vscode": "^1.81.0"
     },
@@ -38,16 +38,28 @@
             {
                 "command": "gameAssets.refresh",
                 "title": "Refresh Game Assets",
-                "icon": "media/koopa.PNG"
+                "icon": "media/koopa.PNG",
+                "category": "Petalburg"
             },
             {
                 "command": "gameAssets.openFile",
-                "title": "Open File"
+                "title": "Open File",
+                "when": "false"
             },
             {
                 "command": "petalburg.sceneEditor.new",
                 "title": "Create new Junebug Scene",
-                "category": "Junebug Scene"
+                "category": "Junebug"
+            },
+            {
+                "command": "petalburg.sceneEditor.new",
+                "title": "Create Junebug Scene",
+                "category": "Junebug"
+            },
+            {
+                "command": "petalburg.createProject",
+                "title": "Create Junebug Game Project",
+                "category": "Junebug"
             }
         ],
         "menus": {
@@ -86,6 +98,7 @@
     },
     "devDependencies": {
         "@types/mocha": "^10.0.1",
+        "@types/mustache": "^4.2.2",
         "@types/node": "16.x",
         "@types/vscode": "^1.81.0",
         "@typescript-eslint/eslint-plugin": "^6.4.1",
@@ -97,6 +110,7 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
-        "chokidar": "^3.5.3"
+        "chokidar": "^3.5.3",
+        "mustache": "^4.2.0"
     }
 }

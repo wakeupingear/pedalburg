@@ -1,0 +1,3 @@
+[submodule "lib/junebug"]
+	path = lib/junebug
+	url = https://github.com/wakeupingear/junebug

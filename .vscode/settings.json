@@ -10,5 +10,9 @@
     "typescript.tsc.autoDetect": "off",
     "npm.exclude": [
         "**/editors/**"
-    ]
+    ],
+    "files.associations": {
+        "*.hat": "jsonc",
+        "*.ejs": "cpp"
+    }
 }
