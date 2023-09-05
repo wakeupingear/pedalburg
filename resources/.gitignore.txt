@@ -35,7 +35,6 @@ bld/
 CMakeCache.txt
 CMakeFiles/
 CMakeScripts/
-itp380labs.xcodeproj/
 cmake-build*/
 diagnostics.json
 BuildActual.txt

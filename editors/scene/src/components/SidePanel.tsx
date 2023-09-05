@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useEditor } from './EditorWrapper';
 
+export const PANEL_WIDTH = 144;
+
 export default function SidePanel() {
     const { validFile, scene, makeEdit, fileName } = useEditor();
 
@@ -15,6 +17,7 @@ export default function SidePanel() {
 
     if (!validFile || !scene) return null;
 
+    const { actors = [] } = scene;
     const title = fileName
         ? fileName.split('/').pop()?.replace('.sc.json', '')
         : 'Untitled';
@@ -34,6 +37,9 @@ export default function SidePanel() {
     return (
         <div className="p-2 absolute right-0 top-0 flex flex-col w-36 h-full bg-[var(--vscode-editor-background)] border-l-2 border-l-[var(--vscode-editorGroupHeader-tabsBackground)]">
             <h1 className="text-xl capitalize">{title}</h1>
+            <h2>
+                {actors.length} Actor{actors.length !== 1 ? 's' : ''}
+            </h2>
             {size && (
                 <>
                     <h2 className="mt-auto">Scene Size</h2>

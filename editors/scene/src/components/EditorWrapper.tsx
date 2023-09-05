@@ -112,10 +112,12 @@ export default function EditorWrapper({ children }: VSCodeProps) {
     }, []);
 
     const makeEdit: EditorContextProps['makeEdit'] = (edit) => {
-        if (!scene) return;
-
-        setScene(applyEdit(scene, edit));
-        VSCODE.postMessage(edit);
+        setScene((currScene) => {
+            if (!currScene) return currScene;
+            applyEdit(currScene, edit);
+            VSCODE.postMessage(edit);
+            return currScene;
+        });
     };
 
     return (

@@ -1,11 +1,14 @@
-import { useRef, useEffect, MutableRefObject } from 'react';
+import { useRef, useEffect, MutableRefObject, KeyboardEvent } from 'react';
 import { Vector } from '../types/math';
 import { Scene } from '../types/junebug';
 import { COL_EDITOR_TABS_BACKGROUND } from '../utils/vscode';
+import { PANEL_WIDTH } from './SidePanel';
 
 const VIEW_BORDER = 2;
+const SCENE_PADDING = 36;
 
 const MOUSE_MOTION_EVENTS = ['mousedown', 'mouseup', 'mousemove'];
+const KEYBOARD_EVENTS = ['keydown', 'keyup'];
 const MIN_SCALE = 0.25,
     MAX_SCALE = 2.5;
 
@@ -13,11 +16,14 @@ interface Mouse {
     x: number;
     y: number;
     button: 'left' | 'right' | 'middle' | null;
+    time: number;
     wheel: number;
     lastX: number;
     lastY: number;
     drag: boolean;
 }
+
+type Keyboard = Partial<Record<KeyboardEvent['key'], number>>;
 
 interface DrawArgs {
     fill: string;
@@ -30,6 +36,7 @@ interface GridHelpers {
     canvasSize?: Vector;
     ctx: CanvasRenderingContext2D;
     mouse: MutableRefObject<Mouse>;
+    keyboard: MutableRefObject<Keyboard>;
     scene: MutableRefObject<Scene | null>;
     coordToCanvas: (x: number, y: number) => Vector;
     canvasToCoord: (x: number, y: number) => Vector;
@@ -44,7 +51,9 @@ interface GridHelpers {
 
 interface GridProps {
     scene: MutableRefObject<Scene | null>;
-    draw?: (helpers: GridHelpers) => void;
+    draw?: (helpers: GridHelpers) => {
+        mouseCapture?: boolean;
+    };
     scale?: number;
     scaleRate?: number;
     tileSize?: number;
@@ -63,12 +72,14 @@ export default function Grid({
         x: 0,
         y: 0,
         button: null,
+        time: 0,
         wheel: 0,
         lastX: 0,
         lastY: 0,
         drag: false,
     });
-    const _topLeft = useRef({ x: 0, y: 0 });
+    const _keyboard = useRef<Keyboard>({});
+    const _topLeft = useRef({ x: 400, y: 0 });
     const _panZoom = useRef({
         x: 0,
         y: 0,
@@ -107,9 +118,29 @@ export default function Grid({
         };
     };
 
+    useEffect(() => {
+        if (!scene.current) return;
+
+        const { size } = scene.current;
+        if (size) {
+            const xScale =
+                    (window.innerWidth - SCENE_PADDING * 2 - PANEL_WIDTH) /
+                    size[0],
+                yScale = (window.innerHeight - SCENE_PADDING * 2) / size[1];
+            _panZoom.current.scale = Math.min(xScale, yScale);
+            _panZoom.current.x =
+                SCENE_PADDING +
+                ((xScale - _panZoom.current.scale) * size[0]) / 2;
+            _panZoom.current.y =
+                SCENE_PADDING +
+                ((yScale - _panZoom.current.scale) * size[1]) / 2;
+        }
+    }, [scene]);
+
     const helpers = useRef<GridHelpers>({
         ctx: null as unknown as CanvasRenderingContext2D,
         mouse: _mouse,
+        keyboard: _keyboard,
         drawRect: (x, y, w, h, args) => {
             const ctx = helpers.current.ctx;
 
@@ -151,8 +182,8 @@ export default function Grid({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // eslint-disable-next-line
-        function mouseEvents(e: any) {
+        // Mouse events
+        const mouseEvents = (e: any) => {
             if (!canvasRef.current) return;
 
             const mouse = _mouse.current;
@@ -169,19 +200,28 @@ export default function Grid({
                 if (e.type === 'mouseup') {
                     mouse.button = null;
                 }
+                mouse.time = 0;
             }
 
             if (e.type === 'wheel') {
                 mouse.wheel += -e.deltaY;
                 e.preventDefault();
             }
-        }
 
-        // Add event listeners for mouse events
+            _mouse.current = mouse;
+        };
         MOUSE_MOTION_EVENTS.forEach((name) =>
             document.addEventListener(name, mouseEvents)
         );
         document.addEventListener('wheel', mouseEvents, { passive: false });
+
+        // KEyboard events
+        const keyboardEvents = (e: any) => {
+            _keyboard.current[e.key] = e.type === 'keydown' ? 1 : 0;
+        };
+        KEYBOARD_EVENTS.forEach((name) =>
+            document.addEventListener(name, keyboardEvents)
+        );
 
         // Main grid draw function
         let animationFrameId: number;
@@ -242,7 +282,7 @@ export default function Grid({
             ctx.stroke();
 
             helpers.current.ctx = ctx;
-            externalDraw?.(helpers.current);
+            return externalDraw?.(helpers.current);
         };
 
         // Initialize animation loop
@@ -273,22 +313,28 @@ export default function Grid({
                 _panZoom.current.scaleAt(mouse.x, mouse.y, scale); //scale is the change in scale
             }
 
-            if (mouse.button === 'left' || mouse.button === 'middle') {
-                if (!mouse.drag) {
-                    _mouse.current.lastX = mouse.x;
-                    _mouse.current.lastY = mouse.y;
-                    _mouse.current.drag = true;
-                } else {
-                    _panZoom.current.x += mouse.x - mouse.lastX;
-                    _panZoom.current.y += mouse.y - mouse.lastY;
-                    _mouse.current.lastX = mouse.x;
-                    _mouse.current.lastY = mouse.y;
-                }
-            } else if (mouse.drag) {
-                _mouse.current.drag = false;
+            if (_mouse.current.button) {
+                _mouse.current.time++;
             }
 
-            draw();
+            const { mouseCapture } = draw() || {};
+
+            if (!mouseCapture) {
+                if (mouse.button === 'left' || mouse.button === 'middle') {
+                    if (!mouse.drag) {
+                        _mouse.current.lastX = mouse.x;
+                        _mouse.current.lastY = mouse.y;
+                        _mouse.current.drag = true;
+                    } else {
+                        _panZoom.current.x += mouse.x - mouse.lastX;
+                        _panZoom.current.y += mouse.y - mouse.lastY;
+                        _mouse.current.lastX = mouse.x;
+                        _mouse.current.lastY = mouse.y;
+                    }
+                } else if (mouse.drag) {
+                    _mouse.current.drag = false;
+                }
+            }
 
             animationFrameId = window.requestAnimationFrame(update);
         };
@@ -302,6 +348,9 @@ export default function Grid({
                 document.removeEventListener(name, mouseEvents);
             });
             document.removeEventListener('wheel', mouseEvents);
+            KEYBOARD_EVENTS.forEach((name) => {
+                document.removeEventListener(name, keyboardEvents);
+            });
         };
     }, [canvasRef]);
 

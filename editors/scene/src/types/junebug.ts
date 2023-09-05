@@ -6,11 +6,11 @@ export type Layer = {
 
 export type Actor = {
     type: string;
+    pos: [number, number];
     id?: string;
     layer?: string;
     sprite?: string;
     scale?: number | [number, number];
-    pos?: [number, number];
 };
 
 export type Scene = {
