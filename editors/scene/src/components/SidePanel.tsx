@@ -1,81 +1,39 @@
-import { useEffect, useState } from 'react';
+import clsx from 'clsx';
 import { useEditor } from './EditorWrapper';
+import ActorPanel from './panels/ActorPanel';
+import ScenePanel from './panels/ScenePanel';
+import { useState } from 'react';
 
 export const PANEL_WIDTH = 144;
 
+type Category = 'scene' | 'actor';
+
 export default function SidePanel() {
-    const { validFile, scene, makeEdit, fileName } = useEditor();
+    const { selectedActorId, panelsInteractable } = useEditor();
 
-    const [size, setSize] = useState(scene?.size || null);
-    const [changed, setChanged] = useState(false);
-    useEffect(() => {
-        if (scene) {
-            setSize(scene.size);
-            setChanged(false);
-        }
-    }, [scene]);
-
-    if (!validFile || !scene) return null;
-
-    const { actors = [] } = scene;
-    const title = fileName
-        ? fileName.split('/').pop()?.replace('.sc.json', '')
-        : 'Untitled';
-
-    const saveEdit = () => {
-        if (!changed || !size || size[0] <= 0 || size[1] <= 0) return;
-
-        makeEdit({
-            type: 'update',
-            oldValue: scene.size,
-            newValue: size,
-            path: 'size',
-        });
-        setChanged(false);
-    };
+    const [pinnedCategory, setPinnedCategory] = useState<Category | null>(null);
+    const category = pinnedCategory || (selectedActorId ? 'actor' : 'scene');
+    console.log(pinnedCategory, selectedActorId, category);
 
     return (
-        <div className="p-2 absolute right-0 top-0 flex flex-col w-36 h-full bg-[var(--vscode-editor-background)] border-l-2 border-l-[var(--vscode-editorGroupHeader-tabsBackground)]">
-            <h1 className="text-xl capitalize">{title}</h1>
-            <h2>
-                {actors.length} Actor{actors.length !== 1 ? 's' : ''}
-            </h2>
-            {size && (
-                <>
-                    <h2 className="mt-auto">Scene Size</h2>
-                    <div className="gap-2 flex mt-2">
-                        <input
-                            type="number"
-                            value={size[0]}
-                            onChange={(e) => {
-                                setSize([Number(e.target.value), size[1]]);
-                                setChanged(true);
-                            }}
-                            onBlur={saveEdit}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    saveEdit();
-                                }
-                            }}
-                        />
-                        X
-                        <input
-                            type="number"
-                            value={size[1]}
-                            onChange={(e) => {
-                                setSize([size[0], Number(e.target.value)]);
-                                setChanged(true);
-                            }}
-                            onBlur={saveEdit}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    saveEdit();
-                                }
-                            }}
-                        />
-                    </div>
-                </>
+        <div
+            className={clsx(
+                'p-2 absolute right-0 top-0 flex flex-col w-36 h-full bg-[var(--vscode-editor-background)] border-l-2 border-l-[var(--vscode-editorGroupHeader-tabsBackground)]',
+                {
+                    'pointer-events-none': !panelsInteractable,
+                }
             )}
+        >
+            <button
+                onClick={() =>
+                    setPinnedCategory(pinnedCategory ? null : category)
+                }
+                className="py-1 px-2 ml-auto w-min"
+            >
+                {pinnedCategory ? 'Unpin' : 'Pin'}
+            </button>
+            {category === 'actor' && <ActorPanel />}
+            {category === 'scene' && <ScenePanel />}
         </div>
     );
 }

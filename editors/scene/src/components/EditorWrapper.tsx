@@ -5,18 +5,26 @@ import {
     useState,
     createContext,
     useRef,
+    useMemo,
 } from 'react';
 import VSCODE from '../utils/vscode';
-import { Scene } from '../types/junebug';
+import { Actor, Scene } from '../types/junebug';
 import { applyEdit, processInitialScene } from '../utils/junebug';
 import { SceneEdit } from '../types/vscode';
+import { usePrevious } from '@uidotdev/usehooks';
 
 type EditorContextProps = {
+    actors: Record<string, Actor>;
     editable: boolean;
     fileName: string | null;
     scene: Scene | null;
     validFile: boolean;
     makeEdit: (edit: SceneEdit) => void;
+    selectedActorId: string | null;
+    setSelectedActorId: (id: string | null) => void;
+    selectedActor: Actor | null;
+    panelsInteractable: boolean;
+    setPanelsInteractable: (interactable: boolean) => void;
 };
 const EditorContext = createContext<EditorContextProps>(
     {} as EditorContextProps
@@ -34,6 +42,20 @@ export default function EditorWrapper({ children }: VSCodeProps) {
 
     const fileData = useRef<Uint8Array>();
 
+    const [selectedActorId, setSelectedActorId] = useState<string | null>(null);
+    const prevSelectedActorId = usePrevious(selectedActorId);
+    const actors = useMemo(() => {
+        const newActors: Record<string, Actor> = {};
+        (scene?.actors || []).forEach((actor) => {
+            newActors[actor.id] = actor;
+        });
+        return newActors;
+    }, [scene]);
+    const selectedActor = useMemo(
+        () => actors[selectedActorId || prevSelectedActorId || ''] || null,
+        [actors, selectedActorId, prevSelectedActorId]
+    );
+
     const reset = (data: Uint8Array | undefined, edits?: SceneEdit[]) => {
         if (data) fileData.current = data;
 
@@ -50,6 +72,8 @@ export default function EditorWrapper({ children }: VSCodeProps) {
             setValidFile(false);
         }
     };
+
+    const [panelsInteractable, setPanelsInteractable] = useState(true);
 
     const resetUntitled = (edits?: SceneEdit[]) => {
         reset(
@@ -116,13 +140,25 @@ export default function EditorWrapper({ children }: VSCodeProps) {
             if (!currScene) return currScene;
             applyEdit(currScene, edit);
             VSCODE.postMessage(edit);
-            return currScene;
+            return { ...currScene };
         });
     };
 
     return (
         <EditorContext.Provider
-            value={{ editable, fileName, scene, validFile, makeEdit }}
+            value={{
+                actors,
+                editable,
+                fileName,
+                scene,
+                validFile,
+                makeEdit,
+                selectedActorId,
+                setSelectedActorId,
+                selectedActor,
+                panelsInteractable,
+                setPanelsInteractable,
+            }}
         >
             {children}
         </EditorContext.Provider>

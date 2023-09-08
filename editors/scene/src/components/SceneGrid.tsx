@@ -5,7 +5,12 @@ import { Scene } from '../types/junebug';
 import { COL_BREADCRUMB_FOREGROUND } from '../utils/vscode';
 
 export default function SceneGrid() {
-    const { scene: _scene, validFile, makeEdit } = useEditor();
+    const {
+        scene: _scene,
+        validFile,
+        makeEdit,
+        setSelectedActorId,
+    } = useEditor();
     const sceneRef = useRef<Scene | null>(_scene);
     useEffect(() => {
         sceneRef.current = _scene;
@@ -13,11 +18,13 @@ export default function SceneGrid() {
 
     const selectedActor = useRef<{
         id: string | null;
+        index: number | null;
         offset: [number, number] | null;
         start: [number, number] | null;
         isDragging: boolean;
     }>({
         id: null,
+        index: null,
         offset: null,
         start: null,
         isDragging: false,
@@ -44,6 +51,7 @@ export default function SceneGrid() {
                 ctx,
                 canvasSize,
                 canvasToCoord,
+                coordToCanvas,
             }) => {
                 if (scene.current) {
                     const { size, actors = [] } = scene.current;
@@ -60,9 +68,7 @@ export default function SceneGrid() {
                     );
                     let hoveredActor: number | null = selectedActor.current
                         .isDragging
-                        ? actors.findIndex(
-                              (actor) => actor.id === selectedActor.current.id
-                          )
+                        ? selectedActor.current.index
                         : null;
                     if (hoveredActor == null)
                         actors.forEach((actor, i) => {
@@ -85,57 +91,48 @@ export default function SceneGrid() {
                     // Process interactions on hovered actor
                     if (hoveredActor !== null) {
                         const actor = actors[hoveredActor];
-                        if (actor.id && actor.pos) {
-                            if (mouse.current.button === 'left') {
-                                selectedActor.current.id = actor.id;
+                        if (mouse.current.button === 'left') {
+                            selectedActor.current.id = actor.id;
+                            selectedActor.current.index = hoveredActor;
 
-                                if (mouse.current.time === 1) {
-                                    selectedActor.current.offset = [
-                                        actor.pos[0] - mouseCoord.x,
-                                        actor.pos[1] - mouseCoord.y,
-                                    ];
-                                    selectedActor.current.start = [
-                                        ...actor.pos,
-                                    ];
-                                } else {
-                                    if (selectedActor.current.offset) {
-                                        if (!selectedActor.current.isDragging) {
-                                            const currOffset = [
-                                                actor.pos[0] - mouseCoord.x,
-                                                actor.pos[1] - mouseCoord.y,
-                                            ];
-                                            const diff = [
-                                                currOffset[0] -
-                                                    selectedActor.current
-                                                        .offset[0],
-                                                currOffset[1] -
-                                                    selectedActor.current
-                                                        .offset[1],
-                                            ];
-                                            const dist = Math.sqrt(
-                                                diff[0] * diff[0] +
-                                                    diff[1] * diff[1]
-                                            );
-                                            selectedActor.current.isDragging =
-                                                dist > 2;
-                                        }
+                            if (mouse.current.time === 1) {
+                                selectedActor.current.offset = [
+                                    actor.pos[0] - mouseCoord.x,
+                                    actor.pos[1] - mouseCoord.y,
+                                ];
+                                selectedActor.current.start = [...actor.pos];
 
-                                        if (selectedActor.current.isDragging) {
-                                            actor.pos = [
-                                                mouseCoord.x +
-                                                    selectedActor.current
-                                                        .offset[0],
-                                                mouseCoord.y +
-                                                    selectedActor.current
-                                                        .offset[1],
-                                            ];
-                                            actor.pos[0] = Math.round(
-                                                actor.pos[0]
-                                            );
-                                            actor.pos[1] = Math.round(
-                                                actor.pos[1]
-                                            );
-                                        }
+                                setSelectedActorId(actor.id);
+                            } else {
+                                if (selectedActor.current.offset) {
+                                    if (!selectedActor.current.isDragging) {
+                                        const currOffset = [
+                                            actor.pos[0] - mouseCoord.x,
+                                            actor.pos[1] - mouseCoord.y,
+                                        ];
+                                        const diff = [
+                                            currOffset[0] -
+                                                selectedActor.current.offset[0],
+                                            currOffset[1] -
+                                                selectedActor.current.offset[1],
+                                        ];
+                                        const dist = Math.sqrt(
+                                            diff[0] * diff[0] +
+                                                diff[1] * diff[1]
+                                        );
+                                        selectedActor.current.isDragging =
+                                            dist > 2;
+                                    }
+
+                                    if (selectedActor.current.isDragging) {
+                                        actor.pos = [
+                                            mouseCoord.x +
+                                                selectedActor.current.offset[0],
+                                            mouseCoord.y +
+                                                selectedActor.current.offset[1],
+                                        ];
+                                        actor.pos[0] = Math.round(actor.pos[0]);
+                                        actor.pos[1] = Math.round(actor.pos[1]);
                                     }
                                 }
                             }
@@ -143,31 +140,30 @@ export default function SceneGrid() {
                     } else {
                         if (mouse.current.button === 'left') {
                             selectedActor.current.id = null;
+                            setSelectedActorId(null);
                         }
                     }
 
                     // Process interactions on selected actor
                     if (
+                        selectedActor.current.index &&
                         selectedActor.current.id &&
-                        hoveredActor !== null &&
                         sceneRef.current?.actors
                     ) {
+                        const { isDragging, index } = selectedActor.current;
                         // Check if actor was just dragged
-                        const justWasDragging =
-                            selectedActor.current.isDragging;
+                        const justWasDragging = isDragging;
                         selectedActor.current.isDragging =
-                            selectedActor.current.isDragging &&
-                            mouse.current.button === 'left';
+                            isDragging && mouse.current.button === 'left';
                         if (
                             justWasDragging &&
-                            !selectedActor.current.isDragging &&
-                            sceneRef.current?.actors
+                            !selectedActor.current.isDragging
                         ) {
                             makeEdit({
                                 type: 'update',
-                                path: `actors.${hoveredActor}`,
-                                newValue: actors[hoveredActor],
-                                oldValue: sceneRef.current.actors[hoveredActor],
+                                path: `actors.${selectedActor.current.index}`,
+                                newValue: actors[index],
+                                oldValue: sceneRef.current.actors[index],
                             });
                         }
 
@@ -179,23 +175,44 @@ export default function SceneGrid() {
                         ) {
                             makeEdit({
                                 type: 'delete',
-                                path: `actors.${hoveredActor}`,
-                                oldValue: sceneRef.current.actors[hoveredActor],
+                                path: `actors.${index}`,
+                                oldValue: sceneRef.current.actors[index],
                             });
+
+                            selectedActor.current.id = null;
+                            setSelectedActorId(null);
                         }
                     }
 
                     // Draw actors
                     actors.forEach((actor, i) => {
                         const { id, pos } = actor;
+                        const isSelected = selectedActor.current.id === id;
                         if (pos) {
                             drawRect(pos[0], pos[1], 20, 20, {
-                                fill:
-                                    hoveredActor === i ||
-                                    selectedActor.current.id === id
-                                        ? 'red'
-                                        : 'white',
+                                fill: isSelected ? 'red' : 'white',
+                                lineWidth: hoveredActor === i ? 2 : 0,
+                                strokeStyle:
+                                    hoveredActor === i ? 'blue' : undefined,
                             });
+
+                            if (
+                                isSelected &&
+                                (selectedActor.current.isDragging ||
+                                    hoveredActor === i)
+                            ) {
+                                // draw text
+                                ctx.fillStyle = 'white';
+                                ctx.font = '12px monospace';
+                                const coord = coordToCanvas(pos[0], pos[1] - 4);
+                                ctx.fillText(
+                                    `${Math.round(pos[0])}, ${Math.round(
+                                        pos[1]
+                                    )}`,
+                                    coord.x,
+                                    coord.y
+                                );
+                            }
                         }
                     });
 

@@ -3,6 +3,7 @@ import { Vector } from '../types/math';
 import { Scene } from '../types/junebug';
 import { COL_EDITOR_TABS_BACKGROUND } from '../utils/vscode';
 import { PANEL_WIDTH } from './SidePanel';
+import { useEditor } from './EditorWrapper';
 
 const VIEW_BORDER = 2;
 const SCENE_PADDING = 36;
@@ -101,6 +102,8 @@ export default function Grid({
         },
     });
 
+    const { setPanelsInteractable } = useEditor();
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     const canvasToCoord = (x: number, y: number) => {
@@ -191,15 +194,21 @@ export default function Grid({
             mouse.x = e.pageX - bounds.left - scrollX;
             mouse.y = e.pageY - bounds.top - scrollY;
             if (e.type === 'mousedown' || e.type === 'mouseup') {
-                mouse.button =
-                    e.button === 0
-                        ? 'left'
-                        : e.button === 1
-                        ? 'middle'
-                        : 'right';
-                if (e.type === 'mouseup') {
-                    mouse.button = null;
+                const isMouseUp = e.type === 'mouseup';
+                if (mouse.x < bounds.right - PANEL_WIDTH) {
+                    mouse.button =
+                        e.button === 0
+                            ? 'left'
+                            : e.button === 1
+                            ? 'middle'
+                            : 'right';
+                    setPanelsInteractable(isMouseUp);
                 }
+                if (isMouseUp) {
+                    mouse.button = null;
+                    setPanelsInteractable(isMouseUp);
+                }
+
                 mouse.time = 0;
             }
 
