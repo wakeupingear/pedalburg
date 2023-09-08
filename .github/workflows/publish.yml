@@ -27,7 +27,7 @@ jobs:
                   VERSION=$(node -p "require('./package.json').version")
                   echo "Version: $VERSION"
                   echo "Checking if version is already published..."
-                  if [ $(vsce show wakeupingear.petalburg | grep $VERSION) ]; then
+                  if vsce show wakeupingear.petalburg | grep -q "$VERSION"; then
                     echo "Version $VERSION is already published. Skipping publish."
                     echo "::set-output name=check::false"
                   else

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useEditor } from '../EditorWrapper';
 
 export default function ActorPanel() {
